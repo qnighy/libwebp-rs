@@ -4,6 +4,9 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::*;
 use std::ptr::NonNull;
+use std::slice;
+
+use crate::error::WebPSimpleError;
 
 pub struct WebpBox<T: ?Sized> {
     ptr: NonNull<T>,
@@ -61,6 +64,22 @@ unsafe fn WebPFree(ptr: *mut c_void) {
 impl<T: fmt::Debug + ?Sized> fmt::Debug for WebpBox<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(self as &T, f)
+    }
+}
+
+#[inline]
+pub(crate) unsafe fn wrap_bytes<F>(
+    ptr: *mut u8,
+    get_len: F,
+) -> Result<WebpBox<[u8]>, WebPSimpleError>
+where
+    F: FnOnce() -> usize,
+{
+    if !ptr.is_null() {
+        let len = get_len();
+        Ok(WebpBox::from_raw(slice::from_raw_parts_mut(ptr, len)))
+    } else {
+        Err(WebPSimpleError)
     }
 }
 

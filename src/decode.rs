@@ -2,9 +2,8 @@ use std::os::raw::*;
 use std::ptr;
 use std::slice;
 
-use crate::boxed::{WebpBox, WebpYuvBox};
+use crate::boxed::{wrap_bytes, WebpBox, WebpYuvBox};
 use crate::error::WebPSimpleError;
-use crate::wrap_bytes;
 
 /// Return the decoder's version number, packed in hexadecimal using 8bits for
 /// each of major/minor/revision. E.g: v2.5.7 is 0x020507.

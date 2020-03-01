@@ -1,9 +1,8 @@
 use std::os::raw::*;
 use std::ptr;
 
-use crate::boxed::WebpBox;
+use crate::boxed::{wrap_bytes, WebpBox};
 use crate::error::WebPSimpleError;
-use crate::wrap_bytes;
 
 /// Return the encoder's version number, packed in hexadecimal using 8bits for
 /// each of major/minor/revision. E.g: v2.5.7 is 0x020507.
