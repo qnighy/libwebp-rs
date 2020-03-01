@@ -1,3 +1,4 @@
+use libwebp_sys as sys;
 use std::os::raw::*;
 use std::ptr;
 
@@ -8,7 +9,7 @@ use crate::error::WebPSimpleError;
 /// each of major/minor/revision. E.g: v2.5.7 is 0x020507.
 #[allow(non_snake_case)]
 pub fn WebPGetEncoderVersion() -> u32 {
-    (unsafe { libwebp_sys::WebPGetEncoderVersion() }) as u32
+    (unsafe { sys::WebPGetEncoderVersion() }) as u32
 }
 
 fn encode_size_check(len: usize, width: u32, height: u32, stride: u32, pixelwidth: usize) {
@@ -54,7 +55,7 @@ macro_rules! wrap_encoder {
             encode_size_check(rgb.len(), width, height, stride, $pixelwidth);
             let mut output: *mut u8 = ptr::null_mut();
             let result = unsafe {
-                libwebp_sys::$name(
+                sys::$name(
                     rgb.as_ptr(),
                     width as c_int,
                     height as c_int,
@@ -89,7 +90,7 @@ macro_rules! wrap_lossless_encoder {
             encode_size_check(rgb.len(), width, height, stride, $pixelwidth);
             let mut output: *mut u8 = ptr::null_mut();
             let result = unsafe {
-                libwebp_sys::$name(
+                sys::$name(
                     rgb.as_ptr(),
                     width as c_int,
                     height as c_int,

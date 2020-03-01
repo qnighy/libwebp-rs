@@ -1,3 +1,4 @@
+use libwebp_sys as sys;
 use std::os::raw::*;
 use std::ptr;
 use std::slice;
@@ -9,7 +10,7 @@ use crate::error::WebPSimpleError;
 /// each of major/minor/revision. E.g: v2.5.7 is 0x020507.
 #[allow(non_snake_case)]
 pub fn WebPGetDecoderVersion() -> u32 {
-    (unsafe { libwebp_sys::WebPGetDecoderVersion() }) as u32
+    (unsafe { sys::WebPGetDecoderVersion() }) as u32
 }
 
 /// Retrieve basic header information: width, height.
@@ -20,8 +21,7 @@ pub fn WebPGetDecoderVersion() -> u32 {
 pub fn WebPGetInfo(data: &[u8]) -> Result<(u32, u32), WebPSimpleError> {
     let mut width: c_int = 0;
     let mut height: c_int = 0;
-    let result =
-        unsafe { libwebp_sys::WebPGetInfo(data.as_ptr(), data.len(), &mut width, &mut height) };
+    let result = unsafe { sys::WebPGetInfo(data.as_ptr(), data.len(), &mut width, &mut height) };
     if result != 0 {
         Ok((width as u32, height as u32))
     } else {
@@ -38,8 +38,7 @@ pub fn WebPGetInfo(data: &[u8]) -> Result<(u32, u32), WebPSimpleError> {
 pub fn WebPDecodeRGBA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
     let mut height: c_int = 0;
-    let result =
-        unsafe { libwebp_sys::WebPDecodeRGBA(data.as_ptr(), data.len(), &mut width, &mut height) };
+    let result = unsafe { sys::WebPDecodeRGBA(data.as_ptr(), data.len(), &mut width, &mut height) };
     let buf = (unsafe { wrap_bytes(result, || width as usize * height as usize * 4) })?;
     Ok((width as u32, height as u32, buf))
 }
@@ -49,8 +48,7 @@ pub fn WebPDecodeRGBA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimp
 pub fn WebPDecodeARGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
     let mut height: c_int = 0;
-    let result =
-        unsafe { libwebp_sys::WebPDecodeARGB(data.as_ptr(), data.len(), &mut width, &mut height) };
+    let result = unsafe { sys::WebPDecodeARGB(data.as_ptr(), data.len(), &mut width, &mut height) };
     let buf = (unsafe { wrap_bytes(result, || width as usize * height as usize * 4) })?;
     Ok((width as u32, height as u32, buf))
 }
@@ -60,8 +58,7 @@ pub fn WebPDecodeARGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimp
 pub fn WebPDecodeBGRA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
     let mut height: c_int = 0;
-    let result =
-        unsafe { libwebp_sys::WebPDecodeBGRA(data.as_ptr(), data.len(), &mut width, &mut height) };
+    let result = unsafe { sys::WebPDecodeBGRA(data.as_ptr(), data.len(), &mut width, &mut height) };
     let buf = (unsafe { wrap_bytes(result, || width as usize * height as usize * 4) })?;
     Ok((width as u32, height as u32, buf))
 }
@@ -72,8 +69,7 @@ pub fn WebPDecodeBGRA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimp
 pub fn WebPDecodeRGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
     let mut height: c_int = 0;
-    let result =
-        unsafe { libwebp_sys::WebPDecodeRGB(data.as_ptr(), data.len(), &mut width, &mut height) };
+    let result = unsafe { sys::WebPDecodeRGB(data.as_ptr(), data.len(), &mut width, &mut height) };
     let buf = (unsafe { wrap_bytes(result, || width as usize * height as usize * 3) })?;
     Ok((width as u32, height as u32, buf))
 }
@@ -83,8 +79,7 @@ pub fn WebPDecodeRGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpl
 pub fn WebPDecodeBGR(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
     let mut height: c_int = 0;
-    let result =
-        unsafe { libwebp_sys::WebPDecodeRGB(data.as_ptr(), data.len(), &mut width, &mut height) };
+    let result = unsafe { sys::WebPDecodeRGB(data.as_ptr(), data.len(), &mut width, &mut height) };
     let buf = (unsafe { wrap_bytes(result, || width as usize * height as usize * 3) })?;
     Ok((width as u32, height as u32, buf))
 }
@@ -107,7 +102,7 @@ pub fn WebPDecodeYUV(data: &[u8]) -> Result<(u32, u32, u32, u32, WebpYuvBox), We
     let mut stride: c_int = 0;
     let mut uv_stride: c_int = 0;
     let result = unsafe {
-        libwebp_sys::WebPDecodeYUV(
+        sys::WebPDecodeYUV(
             data.as_ptr(),
             data.len(),
             &mut width,
