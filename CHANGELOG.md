@@ -1,5 +1,7 @@
 ## Unreleased
 
+## 0.1.1
+
 - Refactorings:
   - Split out `encode.rs` and `decode.rs`
   - Move `wrap_bytes` to `boxed.rs`
