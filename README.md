@@ -38,8 +38,8 @@ In these cases, static link is preferred:
   - [x] `WebPGetInfo`
   - [x] `WebPDecode*`
   - [x] `WebPDecodeYUV`
-  - [ ] `WebPDecode*Into`
-  - [ ] `WebPDecodeYUVInto`
+  - [x] `WebPDecode*Into`
+  - [x] `WebPDecodeYUVInto`
   - [ ] `WebPFreeDecBuffer`
   - [ ] `WEBP_CSP_MODE`
   - [ ] `WebPIsPremultipliedMode`
