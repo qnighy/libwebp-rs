@@ -79,7 +79,7 @@ pub fn WebPDecodeRGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpl
 pub fn WebPDecodeBGR(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
     let mut height: c_int = 0;
-    let result = unsafe { sys::WebPDecodeRGB(data.as_ptr(), data.len(), &mut width, &mut height) };
+    let result = unsafe { sys::WebPDecodeBGR(data.as_ptr(), data.len(), &mut width, &mut height) };
     let buf = (unsafe { wrap_bytes(result, || width as usize * height as usize * 3) })?;
     Ok((width as u32, height as u32, buf))
 }
@@ -212,8 +212,8 @@ mod tests {
         assert_eq!(
             &buf[..24],
             &[
-                226, 158, 113, 226, 158, 113, 226, 158, 113, 226, 158, 113, 223, 155, 109, 223,
-                155, 109, 223, 155, 109, 223, 155, 109,
+                113, 158, 226, 113, 158, 226, 113, 158, 226, 113, 158, 226, 109, 155, 223, 109,
+                155, 223, 109, 155, 223, 109, 155, 223,
             ]
         );
     }
