@@ -40,28 +40,29 @@ In these cases, static link is preferred:
   - [x] `WebPDecodeYUV`
   - [x] `WebPDecode*Into`
   - [x] `WebPDecodeYUVInto`
-  - [ ] `WebPFreeDecBuffer`
-  - [ ] `WEBP_CSP_MODE`
-  - [ ] `WebPIsPremultipliedMode`
-  - [ ] `WebPIsAlphaMode`
-  - [ ] `WebPIsRGBMode`
+  - [x] `WEBP_CSP_MODE`
+  - [x] `WebPIsPremultipliedMode`
+  - [x] `WebPIsAlphaMode`
+  - [x] `WebPIsRGBMode`
   - [ ] `WebPRGBABuffer`
   - [ ] `WebPYUVABuffer`
   - [ ] `WebPDecBuffer`
   - [ ] `WebPInitDecBuffer`
   - [ ] `WebPFreeDecBuffer`
-  - [ ] `VP8StatusCode`
-  - [ ] `WebPIDecoder`
-  - [ ] `WebPINewDecoder`
-  - [ ] `WebPINewRGB`
-  - [ ] `WebPINewYUVA`
-  - [ ] `WEBPINewYUV`
-  - [ ] `WebPIDelete`
-  - [ ] `WebPIAppend`
+  - [x] `VP8StatusCode`
+  - [x] `WebPIDecoder` (internal memory)
+  - [ ] `WebPIDecoder` (external memory)
+  - [x] `WebPINewDecoder` (internal memory)
+  - [ ] `WebPINewDecoder` (external memory)
+  - [x] `WebPINewRGB` (internal memory)
+  - [ ] `WebPINewRGB` (external memory)
+  - [x] `WebPINewYUVA` (internal memory)
+  - [ ] `WebPINewYUVA` (external memory)
+  - [x] `WebPIDelete`
+  - [x] `WebPIAppend`
   - [ ] `WebPIUpdate`
-  - [ ] `WebPIDecGetRGB`
-  - [ ] `WebPIDecGetYUVA`
-  - [ ] `WebPIDecGetYUV`
+  - [x] `WebPIDecGetRGB`
+  - [x] `WebPIDecGetYUVA`
   - [ ] `WebPIDecodedArea`
   - [ ] `WebPBitstreamFeatures`
   - [ ] `WebPGetFeatures`

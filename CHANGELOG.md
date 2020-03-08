@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Implement bindings for incremental decoding
+
 ## 0.1.1
 
 - Refactorings:
