@@ -1,6 +1,7 @@
 use libwebp_sys as sys;
+use std::mem;
 use std::os::raw::*;
-use std::ptr;
+use std::ptr::{self, NonNull};
 use std::slice;
 
 use crate::boxed::{wrap_bytes, WebpBox, WebpYuvBox};
@@ -293,8 +294,428 @@ pub fn WebPDecodeYUVInto(
     }
 }
 
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum WEBP_CSP_MODE {
+    MODE_RGB = 0,
+    MODE_RGBA = 1,
+    MODE_BGR = 2,
+    MODE_BGRA = 3,
+    MODE_ARGB = 4,
+    MODE_RGBA_4444 = 5,
+    MODE_RGB_565 = 6,
+    /// A variant of `MODE_RGBA` with premultiplied alpha
+    MODE_rgbA = 7,
+    /// A variant of `MODE_BGRA` with premultiplied alpha
+    MODE_bgrA = 8,
+    /// A variant of `MODE_ARGB` with premultiplied alpha
+    MODE_Argb = 9,
+    /// A variant of `MODE_RGBA_4444` with premultiplied alpha
+    MODE_rgbA_4444 = 10,
+    // YUV modes must come after RGB ones.
+    MODE_YUV = 11,
+    MODE_YUVA = 12, // yuv 4:2:0
+}
+
+impl WEBP_CSP_MODE {
+    pub fn from_raw(raw: sys::WEBP_CSP_MODE) -> Self {
+        use self::WEBP_CSP_MODE::*;
+
+        match raw {
+            sys::MODE_RGB => MODE_RGB,
+            sys::MODE_RGBA => MODE_RGBA,
+            sys::MODE_BGR => MODE_BGR,
+            sys::MODE_BGRA => MODE_BGRA,
+            sys::MODE_ARGB => MODE_ARGB,
+            sys::MODE_RGBA_4444 => MODE_RGBA_4444,
+            sys::MODE_RGB_565 => MODE_RGB_565,
+            sys::MODE_rgbA => MODE_rgbA,
+            sys::MODE_bgrA => MODE_bgrA,
+            sys::MODE_Argb => MODE_Argb,
+            sys::MODE_rgbA_4444 => MODE_rgbA_4444,
+            sys::MODE_YUV => MODE_YUV,
+            sys::MODE_YUVA => MODE_YUVA,
+            _ => panic!("WEBP_CSP_MODE::from_raw: unknown value {:?}", raw),
+        }
+    }
+
+    pub fn into_raw(self) -> sys::WEBP_CSP_MODE {
+        use self::WEBP_CSP_MODE::*;
+
+        match self {
+            MODE_RGB => sys::MODE_RGB,
+            MODE_RGBA => sys::MODE_RGBA,
+            MODE_BGR => sys::MODE_BGR,
+            MODE_BGRA => sys::MODE_BGRA,
+            MODE_ARGB => sys::MODE_ARGB,
+            MODE_RGBA_4444 => sys::MODE_RGBA_4444,
+            MODE_RGB_565 => sys::MODE_RGB_565,
+            MODE_rgbA => sys::MODE_rgbA,
+            MODE_bgrA => sys::MODE_bgrA,
+            MODE_Argb => sys::MODE_Argb,
+            MODE_rgbA_4444 => sys::MODE_rgbA_4444,
+            MODE_YUV => sys::MODE_YUV,
+            MODE_YUVA => sys::MODE_YUVA,
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPIsPremultipliedMode(mode: WEBP_CSP_MODE) -> bool {
+    use self::WEBP_CSP_MODE::*;
+
+    match mode {
+        MODE_rgbA | MODE_bgrA | MODE_Argb | MODE_rgbA_4444 => true,
+        MODE_RGB | MODE_RGBA | MODE_BGR | MODE_BGRA | MODE_ARGB | MODE_RGBA_4444 | MODE_RGB_565
+        | MODE_YUV | MODE_YUVA => false,
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPIsAlphaMode(mode: WEBP_CSP_MODE) -> bool {
+    use self::WEBP_CSP_MODE::*;
+
+    match mode {
+        MODE_RGBA | MODE_BGRA | MODE_ARGB | MODE_RGBA_4444 | MODE_rgbA | MODE_bgrA | MODE_Argb
+        | MODE_rgbA_4444 | MODE_YUVA => true,
+        MODE_RGB | MODE_BGR | MODE_RGB_565 | MODE_YUV => false,
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPIsRGBMode(mode: WEBP_CSP_MODE) -> bool {
+    use self::WEBP_CSP_MODE::*;
+
+    match mode {
+        MODE_RGB | MODE_RGBA | MODE_BGR | MODE_BGRA | MODE_ARGB | MODE_RGBA_4444 | MODE_RGB_565
+        | MODE_rgbA | MODE_bgrA | MODE_Argb | MODE_rgbA_4444 => true,
+        MODE_YUV | MODE_YUVA => false,
+    }
+}
+
+// #[derive(Debug)]
+// pub struct WebPDecBuffer(sys::WebPDecBuffer);
+//
+// impl Drop for WebPDecBuffer {
+//     fn drop(&mut self) {
+//         unsafe {
+//             sys::WebPFreeDecBuffer(&mut self.0);
+//         }
+//     }
+// }
+//
+// impl WebPDecBuffer {
+//     pub unsafe fn from_raw(raw: sys::WebPDecBuffer) -> Self {
+//         debug_assert_eq!(raw.is_external_memory, 0, "is_external_memory should be 0");
+//         WebPDecBuffer(raw)
+//     }
+//
+//     pub fn into_raw(self) -> sys::WebPDecBuffer {
+//         let ret = unsafe { ptr::read(&self.0) };
+//         mem::forget(self);
+//         ret
+//     }
+//
+//     pub fn colorspace(&self) -> WEBP_CSP_MODE {
+//         WEBP_CSP_MODE::from_raw(self.0.colorspace)
+//     }
+//
+//     pub fn set_colorspace(&mut self, colorspace: WEBP_CSP_MODE) {
+//         self.0.colorspace = colorspace.into_raw();
+//     }
+//
+//     pub fn width(&self) -> u32 {
+//         self.0.width as u32
+//     }
+//
+//     pub fn set_width(&mut self, width: u32) {
+//         assert!(width as c_int >= 0);
+//         assert_eq!(width as c_int as u32, width);
+//         self.0.width = width as c_int;
+//     }
+//
+//     pub fn height(&self) -> u32 {
+//         self.0.height as u32
+//     }
+//
+//     pub fn set_height(&mut self, height: u32) {
+//         assert!(height as c_int >= 0);
+//         assert_eq!(height as c_int as u32, height);
+//         self.0.height = height as c_int;
+//     }
+// }
+//
+// #[allow(non_snake_case)]
+// pub fn WebPInitDecBuffer() -> WebPDecBuffer {
+//     let mut buf: sys::WebPDecBuffer = unsafe { mem::zeroed() };
+//     let result = unsafe { sys::WebPInitDecBuffer(&mut buf) };
+//     if result != 0 {
+//         unsafe { WebPDecBuffer::from_raw(buf) }
+//     } else {
+//         panic!("libwebp version mismatch")
+//     }
+// }
+
+#[allow(non_camel_case_types)]
+#[must_use]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum VP8StatusCode {
+    VP8_STATUS_OK = 0,
+    VP8_STATUS_OUT_OF_MEMORY = 1,
+    VP8_STATUS_INVALID_PARAM = 2,
+    VP8_STATUS_BITSTREAM_ERROR = 3,
+    VP8_STATUS_UNSUPPORTED_FEATURE = 4,
+    VP8_STATUS_SUSPENDED = 5,
+    VP8_STATUS_USER_ABORT = 6,
+    VP8_STATUS_NOT_ENOUGH_DATA = 7,
+}
+
+impl VP8StatusCode {
+    pub fn from_raw(raw: sys::VP8StatusCode) -> Self {
+        use self::VP8StatusCode::*;
+
+        match raw {
+            sys::VP8_STATUS_OK => VP8_STATUS_OK,
+            sys::VP8_STATUS_OUT_OF_MEMORY => VP8_STATUS_OUT_OF_MEMORY,
+            sys::VP8_STATUS_INVALID_PARAM => VP8_STATUS_INVALID_PARAM,
+            sys::VP8_STATUS_BITSTREAM_ERROR => VP8_STATUS_BITSTREAM_ERROR,
+            sys::VP8_STATUS_UNSUPPORTED_FEATURE => VP8_STATUS_UNSUPPORTED_FEATURE,
+            sys::VP8_STATUS_SUSPENDED => VP8_STATUS_SUSPENDED,
+            sys::VP8_STATUS_USER_ABORT => VP8_STATUS_USER_ABORT,
+            sys::VP8_STATUS_NOT_ENOUGH_DATA => VP8_STATUS_NOT_ENOUGH_DATA,
+            _ => panic!("VP8StatusCode::from_raw: unknown value {:?}", raw),
+        }
+    }
+
+    pub fn into_raw(self) -> sys::WEBP_CSP_MODE {
+        use self::VP8StatusCode::*;
+
+        match self {
+            VP8_STATUS_OK => sys::VP8_STATUS_OK,
+            VP8_STATUS_OUT_OF_MEMORY => sys::VP8_STATUS_OUT_OF_MEMORY,
+            VP8_STATUS_INVALID_PARAM => sys::VP8_STATUS_INVALID_PARAM,
+            VP8_STATUS_BITSTREAM_ERROR => sys::VP8_STATUS_BITSTREAM_ERROR,
+            VP8_STATUS_UNSUPPORTED_FEATURE => sys::VP8_STATUS_UNSUPPORTED_FEATURE,
+            VP8_STATUS_SUSPENDED => sys::VP8_STATUS_SUSPENDED,
+            VP8_STATUS_USER_ABORT => sys::VP8_STATUS_USER_ABORT,
+            VP8_STATUS_NOT_ENOUGH_DATA => sys::VP8_STATUS_NOT_ENOUGH_DATA,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct WebPIDecoder(NonNull<sys::WebPIDecoder>);
+
+impl Drop for WebPIDecoder {
+    fn drop(&mut self) {
+        unsafe {
+            sys::WebPIDelete(self.0.as_ptr());
+        }
+    }
+}
+
+impl WebPIDecoder {
+    pub unsafe fn from_raw(raw: NonNull<sys::WebPIDecoder>) -> Self {
+        WebPIDecoder(raw)
+    }
+
+    pub fn into_raw(self) -> NonNull<sys::WebPIDecoder> {
+        let ret = self.0;
+        mem::forget(self);
+        ret
+    }
+
+    pub fn as_ptr(&self) -> *const sys::WebPIDecoder {
+        unsafe { self.0.as_ref() }
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut sys::WebPIDecoder {
+        unsafe { self.0.as_mut() }
+    }
+}
+
+// TODO: Implment external version
+#[allow(non_snake_case)]
+pub fn WebPINewDecoder() -> WebPIDecoder {
+    let result = unsafe { sys::WebPINewDecoder(ptr::null_mut()) };
+    if let Some(result) = NonNull::new(result) {
+        unsafe { WebPIDecoder::from_raw(result) }
+    } else {
+        panic!("WebPINewDecoder: allocation failed");
+    }
+}
+
+// TODO: Implment external version
+#[allow(non_snake_case)]
+pub fn WebPINewRGB(csp: WEBP_CSP_MODE) -> WebPIDecoder {
+    assert!(WebPIsRGBMode(csp), "Not an RGB mode: {:?}", csp);
+    let result = unsafe { sys::WebPINewRGB(csp.into_raw(), ptr::null_mut(), 0, 0) };
+    if let Some(result) = NonNull::new(result) {
+        unsafe { WebPIDecoder::from_raw(result) }
+    } else {
+        panic!("WebPINewRGB: allocation failed");
+    }
+}
+
+// TODO: Implment external version
+#[allow(non_snake_case)]
+pub fn WebPINewYUVA() -> WebPIDecoder {
+    let result = unsafe {
+        sys::WebPINewYUVA(
+            ptr::null_mut(),
+            0,
+            0,
+            ptr::null_mut(),
+            0,
+            0,
+            ptr::null_mut(),
+            0,
+            0,
+            ptr::null_mut(),
+            0,
+            0,
+        )
+    };
+    if let Some(result) = NonNull::new(result) {
+        unsafe { WebPIDecoder::from_raw(result) }
+    } else {
+        panic!("WebPINewYUVA: allocation failed");
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPIAppend(idec: &mut WebPIDecoder, data: &[u8]) -> VP8StatusCode {
+    if data.is_empty() {
+        // libwebp AppendToMemBuffer (src/dec/idec_dec.c) doesn't expect empty slice at the beginning.
+        // Since the decoder status cannot be observed otherwise, we just panic here for now.
+        panic!("WebPIAppend: appending an empty slice is not supported for now");
+    }
+    let result = unsafe { sys::WebPIAppend(idec.as_mut_ptr(), data.as_ptr(), data.len()) };
+    VP8StatusCode::from_raw(result)
+}
+
+// TODO: check if it's safe to inconsistently pass data into WebPIUpdate
+// #[allow(non_snake_case)]
+// pub fn WebPIUpdate(idec: &mut WebPIDecoder, data: &[u8]) -> VP8StatusCode {
+//     let result = unsafe { sys::WebPIUpdate(idec.as_mut_ptr(), data.as_ptr(), data.len()) };
+//     VP8StatusCode::from_raw(result)
+// }
+
+#[derive(Debug)]
+pub struct WebPIDecGetRGBResult<'a> {
+    pub buf: &'a [u8],
+    pub last_y: u32,
+    pub width: u32,
+    pub height: u32,
+    pub stride: u32,
+}
+
+#[allow(non_snake_case)]
+pub fn WebPIDecGetRGB(idec: &WebPIDecoder) -> Result<WebPIDecGetRGBResult<'_>, WebPSimpleError> {
+    let mut last_y: c_int = 0;
+    let mut width: c_int = 0;
+    let mut height: c_int = 0;
+    let mut stride: c_int = 0;
+    let result = unsafe {
+        sys::WebPIDecGetRGB(
+            idec.as_ptr(),
+            &mut last_y,
+            &mut width,
+            &mut height,
+            &mut stride,
+        )
+    };
+    if !result.is_null() {
+        // TODO: can this be stride * height?
+        let len = stride as usize * last_y as usize;
+        let buf = unsafe { slice::from_raw_parts(result, len) };
+        Ok(WebPIDecGetRGBResult {
+            buf,
+            last_y: last_y as u32,
+            width: width as u32,
+            height: height as u32,
+            stride: stride as u32,
+        })
+    } else {
+        Err(WebPSimpleError)
+    }
+}
+
+#[derive(Debug)]
+pub struct WebPIDecGetYUVAResult<'a> {
+    pub luma: &'a [u8],
+    pub last_y: u32,
+    pub u: &'a [u8],
+    pub v: &'a [u8],
+    pub a: Option<&'a [u8]>,
+    pub width: u32,
+    pub height: u32,
+    pub stride: u32,
+    pub uv_stride: u32,
+    pub a_stride: u32,
+}
+
+#[allow(non_snake_case)]
+pub fn WebPIDecGetYUVA(idec: &WebPIDecoder) -> Result<WebPIDecGetYUVAResult<'_>, WebPSimpleError> {
+    let mut last_y: c_int = 0;
+    let mut u: *mut u8 = ptr::null_mut();
+    let mut v: *mut u8 = ptr::null_mut();
+    let mut a: *mut u8 = ptr::null_mut();
+    let mut width: c_int = 0;
+    let mut height: c_int = 0;
+    let mut stride: c_int = 0;
+    let mut uv_stride: c_int = 0;
+    let mut a_stride: c_int = 0;
+    let result = unsafe {
+        sys::WebPIDecGetYUVA(
+            idec.as_ptr(),
+            &mut last_y,
+            &mut u,
+            &mut v,
+            &mut a,
+            &mut width,
+            &mut height,
+            &mut stride,
+            &mut uv_stride,
+            &mut a_stride,
+        )
+    };
+    if !result.is_null() {
+        // TODO: can this be stride * height?
+        let luma_len = stride as usize * last_y as usize;
+        let luma = unsafe { slice::from_raw_parts(result, luma_len) };
+        // TODO: can this be uv_stride * ((height + 1) / 2)?
+        let uv_len = uv_stride as usize * ((last_y as usize + 1) / 2);
+        let u = unsafe { slice::from_raw_parts(u as *const u8, uv_len) };
+        let v = unsafe { slice::from_raw_parts(v as *const u8, uv_len) };
+        // TODO: can this be a_stride * height?
+        let a = if !a.is_null() {
+            let a_len = a_stride as usize * last_y as usize;
+            Some(unsafe { slice::from_raw_parts(a as *const u8, a_len) })
+        } else {
+            None
+        };
+        Ok(WebPIDecGetYUVAResult {
+            luma,
+            last_y: last_y as u32,
+            u,
+            v,
+            a,
+            width: width as u32,
+            height: height as u32,
+            stride: stride as u32,
+            uv_stride: uv_stride as u32,
+            a_stride: a_stride as u32,
+        })
+    } else {
+        Err(WebPSimpleError)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use rand::prelude::*;
+
     use super::*;
 
     fn lena() -> Vec<u8> {
@@ -469,5 +890,91 @@ mod tests {
         assert_eq!(&luma[..6], &[165, 165, 165, 165, 162, 162]);
         assert_eq!(&u[..6], &[98, 98, 98, 98, 98, 98]);
         assert_eq!(&v[..6], &[161, 161, 161, 161, 161, 161]);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_WebPINewDecoder() {
+        let _idec = WebPINewDecoder();
+    }
+
+    #[test]
+    fn test_incr_argb() {
+        let data = lena();
+        let mut rng = rand::thread_rng();
+        for _ in 0..50 {
+            let mut idec = WebPINewRGB(WEBP_CSP_MODE::MODE_ARGB);
+            let mut idx = 0;
+            while idx < data.len() {
+                // TODO: include 0 as write_len
+                let write_len = std::cmp::min(rng.gen_range(1, 64), data.len() - idx);
+                let result = WebPIAppend(&mut idec, &data[idx..idx + write_len]);
+                idx += write_len;
+                if result == VP8StatusCode::VP8_STATUS_OK {
+                    break;
+                } else if result == VP8StatusCode::VP8_STATUS_SUSPENDED {
+                    if let Ok(result) = WebPIDecGetRGB(&mut idec) {
+                        if result.last_y >= 1 {
+                            assert_eq!(
+                                &result.buf[..24],
+                                &[
+                                    255, 226, 158, 113, 255, 226, 158, 113, 255, 226, 158, 113,
+                                    255, 226, 158, 113, 255, 223, 155, 109, 255, 223, 155, 109,
+                                ]
+                            );
+                        }
+                    }
+                } else {
+                    panic!("Unexpected status: {:?}", result);
+                }
+            }
+            let result = WebPIDecGetRGB(&mut idec).unwrap();
+            assert_eq!(result.width, 128);
+            assert_eq!(result.height, 128);
+            assert_eq!(result.last_y, 128);
+            assert_eq!(
+                &result.buf[..24],
+                &[
+                    255, 226, 158, 113, 255, 226, 158, 113, 255, 226, 158, 113, 255, 226, 158, 113,
+                    255, 223, 155, 109, 255, 223, 155, 109,
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn test_incr_yuva() {
+        let data = lena();
+        let mut rng = rand::thread_rng();
+        for _ in 0..50 {
+            let mut idec = WebPINewYUVA();
+            let mut idx = 0;
+            while idx < data.len() {
+                // TODO: include 0 as write_len
+                let write_len = std::cmp::min(rng.gen_range(1, 64), data.len() - idx);
+                let result = WebPIAppend(&mut idec, &data[idx..idx + write_len]);
+                idx += write_len;
+                if result == VP8StatusCode::VP8_STATUS_OK {
+                    break;
+                } else if result == VP8StatusCode::VP8_STATUS_SUSPENDED {
+                    if let Ok(result) = WebPIDecGetYUVA(&mut idec) {
+                        if result.last_y >= 1 {
+                            assert_eq!(&result.luma[..6], &[165, 165, 165, 165, 162, 162]);
+                            assert_eq!(&result.u[..6], &[98, 98, 98, 98, 98, 98]);
+                            assert_eq!(&result.v[..6], &[161, 161, 161, 161, 161, 161]);
+                        }
+                    }
+                } else {
+                    panic!("Unexpected status: {:?}", result);
+                }
+            }
+            let result = WebPIDecGetYUVA(&mut idec).unwrap();
+            assert_eq!(result.width, 128);
+            assert_eq!(result.height, 128);
+            assert_eq!(result.last_y, 128);
+            assert_eq!(&result.luma[..6], &[165, 165, 165, 165, 162, 162]);
+            assert_eq!(&result.u[..6], &[98, 98, 98, 98, 98, 98]);
+            assert_eq!(&result.v[..6], &[161, 161, 161, 161, 161, 161]);
+        }
     }
 }
