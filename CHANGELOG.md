@@ -1,5 +1,7 @@
 ## Unreleased
 
+## 0.1.2
+
 - Implement bindings for incremental decoding
 - Refactor: expand macros in `encode.rs`
 - Add docs for simple decoding/encoding

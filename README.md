@@ -10,7 +10,7 @@ This is a binding to [the libwebp library](https://developers.google.com/speed/w
 # Cargo.toml
 
 [dependencies]
-libwebp = { version = "0.1.0", features = ["0_6"] }
+libwebp = { version = "0.1.2", features = ["0_6"] }
 ```
 
 ### Simple decoding
