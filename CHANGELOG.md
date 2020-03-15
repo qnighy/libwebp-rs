@@ -3,6 +3,7 @@
 - Implement bindings for incremental decoding
 - Refactor: expand macros in `encode.rs`
 - Add docs for simple decoding/encoding
+- Implement auto traits for `WebpBox` and `WebpYuvBox`
 
 ## 0.1.1
 
