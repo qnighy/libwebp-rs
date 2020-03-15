@@ -42,75 +42,213 @@ fn encode_size_check(len: usize, width: u32, height: u32, stride: u32, pixelwidt
     );
 }
 
-macro_rules! wrap_encoder {
-    ($name:ident, $pixelwidth:expr) => {
-        #[allow(non_snake_case)]
-        pub fn $name(
-            rgb: &[u8],
-            width: u32,
-            height: u32,
-            stride: u32,
-            quality_factor: f32,
-        ) -> Result<WebpBox<[u8]>, WebPSimpleError> {
-            encode_size_check(rgb.len(), width, height, stride, $pixelwidth);
-            let mut output: *mut u8 = ptr::null_mut();
-            let result = unsafe {
-                sys::$name(
-                    rgb.as_ptr(),
-                    width as c_int,
-                    height as c_int,
-                    stride as c_int,
-                    quality_factor as c_float,
-                    &mut output,
-                )
-            };
-            if result != 0 {
-                unsafe { wrap_bytes(output, || result) }
-            } else {
-                Err(WebPSimpleError)
-            }
-        }
+#[allow(non_snake_case)]
+pub fn WebPEncodeRGB(
+    rgb: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+    quality_factor: f32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(rgb.len(), width, height, stride, 3);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeRGB(
+            rgb.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            quality_factor as c_float,
+            &mut output,
+        )
     };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
 }
 
-wrap_encoder!(WebPEncodeRGB, 3);
-wrap_encoder!(WebPEncodeBGR, 3);
-wrap_encoder!(WebPEncodeRGBA, 4);
-wrap_encoder!(WebPEncodeBGRA, 4);
-
-macro_rules! wrap_lossless_encoder {
-    ($name:ident, $pixelwidth:expr) => {
-        #[allow(non_snake_case)]
-        pub fn $name(
-            rgb: &[u8],
-            width: u32,
-            height: u32,
-            stride: u32,
-        ) -> Result<WebpBox<[u8]>, WebPSimpleError> {
-            encode_size_check(rgb.len(), width, height, stride, $pixelwidth);
-            let mut output: *mut u8 = ptr::null_mut();
-            let result = unsafe {
-                sys::$name(
-                    rgb.as_ptr(),
-                    width as c_int,
-                    height as c_int,
-                    stride as c_int,
-                    &mut output,
-                )
-            };
-            if result != 0 {
-                unsafe { wrap_bytes(output, || result) }
-            } else {
-                Err(WebPSimpleError)
-            }
-        }
+#[allow(non_snake_case)]
+pub fn WebPEncodeBGR(
+    bgr: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+    quality_factor: f32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(bgr.len(), width, height, stride, 3);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeBGR(
+            bgr.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            quality_factor as c_float,
+            &mut output,
+        )
     };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
 }
 
-wrap_lossless_encoder!(WebPEncodeLosslessRGB, 3);
-wrap_lossless_encoder!(WebPEncodeLosslessBGR, 3);
-wrap_lossless_encoder!(WebPEncodeLosslessRGBA, 4);
-wrap_lossless_encoder!(WebPEncodeLosslessBGRA, 4);
+#[allow(non_snake_case)]
+pub fn WebPEncodeRGBA(
+    rgba: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+    quality_factor: f32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(rgba.len(), width, height, stride, 4);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeRGBA(
+            rgba.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            quality_factor as c_float,
+            &mut output,
+        )
+    };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPEncodeBGRA(
+    bgra: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+    quality_factor: f32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(bgra.len(), width, height, stride, 4);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeBGRA(
+            bgra.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            quality_factor as c_float,
+            &mut output,
+        )
+    };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPEncodeLosslessRGB(
+    rgb: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(rgb.len(), width, height, stride, 3);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeLosslessRGB(
+            rgb.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            &mut output,
+        )
+    };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPEncodeLosslessBGR(
+    bgr: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(bgr.len(), width, height, stride, 3);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeLosslessBGR(
+            bgr.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            &mut output,
+        )
+    };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPEncodeLosslessRGBA(
+    rgba: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(rgba.len(), width, height, stride, 4);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeLosslessRGBA(
+            rgba.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            &mut output,
+        )
+    };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn WebPEncodeLosslessBGRA(
+    bgra: &[u8],
+    width: u32,
+    height: u32,
+    stride: u32,
+) -> Result<WebpBox<[u8]>, WebPSimpleError> {
+    encode_size_check(bgra.len(), width, height, stride, 4);
+    let mut output: *mut u8 = ptr::null_mut();
+    let result = unsafe {
+        sys::WebPEncodeLosslessBGRA(
+            bgra.as_ptr(),
+            width as c_int,
+            height as c_int,
+            stride as c_int,
+            &mut output,
+        )
+    };
+    if result != 0 {
+        unsafe { wrap_bytes(output, || result) }
+    } else {
+        Err(WebPSimpleError)
+    }
+}
 
 #[cfg(test)]
 mod tests {
