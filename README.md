@@ -2,6 +2,50 @@
 
 This is a binding to [the libwebp library](https://developers.google.com/speed/webp/download).
 
+## Usage
+
+### Preparation
+
+```toml
+# Cargo.toml
+
+[dependencies]
+libwebp = { version = "0.1.0", features = ["0_6"] }
+```
+
+### Simple decoding
+
+```rust
+use libwebp::WebPDecodeRGBA;
+
+let data: &[u8];
+
+let (width, height, buf) = WebPDecodeRGBA(data).unwrap();
+eprintln!("width = {}, height = {}", width, height);
+eprintln!(
+    "top-left pixel: rgba({}, {}, {}, {})",
+    buf[0],
+    buf[1],
+    buf[2],
+    buf[3] as f64 / 255.0,
+)
+```
+
+### Simple encoding
+
+```rust
+use libwebp::WebPEncodeRGBA;
+
+let buf: &[u8] = &[
+    255, 255, 255, 255, // white
+    255, 0, 0, 255, // red
+    0, 255, 0, 255, // green
+    0, 0, 255, 255, // blue
+];
+let data = WebPEncodeRGBA(buf, 2, 2, 8, 75.0).unwrap();
+let lossless_data = WebPEncodeLosslessRGBA(buf, 2, 2, 8).unwrap();
+```
+
 ## Minimum Supported Rust Version (MSRV)
 
 Rust 1.31.0
@@ -27,6 +71,11 @@ In these cases, static link is preferred:
 - When cross-compiling.
 - `static` feature is turned on.
 - `LIBWEBP_SYS_STATIC` environment variable is set to `1` when building.
+
+## Related repositories
+
+- https://github.com/qnighy/libwebp-sys2-rs
+- https://github.com/qnighy/libwebp-image-rs
 
 ## Completeness
 

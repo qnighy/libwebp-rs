@@ -1,3 +1,5 @@
+//! Safe RAII wrappers for `WebPFree`.
+
 use std::fmt;
 use std::marker::PhantomData;
 use std::mem;
@@ -8,12 +10,42 @@ use std::slice;
 
 use crate::error::WebPSimpleError;
 
+/// A safe RAII wrapper for `WebPFree`.
+///
+/// `WebpBox` is much like `Box`, except what function is used for freeing.
+///
+/// ## Example
+///
+/// The main usecase is as a return value from libwebp.
+///
+/// ```rust
+/// use libwebp::WebPEncodeRGBA;
+///
+/// let buf: &[u8];
+/// # let buf: &[u8] = &[
+/// #     255, 255, 255, 255,
+/// #     255, 0, 0, 255,
+/// #     0, 255, 0, 255,
+/// #     0, 0, 255, 255,
+/// # ];
+/// // This variable has the type of `WebpBox<[u8]>`.
+/// let data = WebPEncodeRGBA(buf, 2, 2, 8, 75.0).unwrap();
+/// ```
 pub struct WebpBox<T: ?Sized> {
     ptr: NonNull<T>,
     _marker: PhantomData<T>,
 }
 
 impl<T: ?Sized> WebpBox<T> {
+    /// Creates `WebpBox` from a raw pointer.
+    ///
+    /// ## Safety
+    ///
+    /// - `raw` must be non-null.
+    /// - `raw` must be well-aligned.
+    /// - The pointee must be valid as `T`.
+    /// - The pointee must be exclusively accessible.
+    /// - `raw` must be freeable via `WebPFree`.
     pub unsafe fn from_raw(raw: *mut T) -> WebpBox<T> {
         Self {
             ptr: NonNull::new_unchecked(raw),
@@ -21,6 +53,7 @@ impl<T: ?Sized> WebpBox<T> {
         }
     }
 
+    /// Turns `WebpBox` into a raw pointer without freeing anything.
     pub fn into_raw(b: WebpBox<T>) -> *mut T {
         let ptr = b.ptr;
         mem::forget(b);
@@ -83,6 +116,11 @@ where
     }
 }
 
+/// A variant of `WebpBox` for return values from `WebPDecodeYUV`.
+///
+/// See [`WebPDecodeYUV`] for examples.
+///
+/// [`WebPDecodeYUV`]: ../fn.WebPDecodeYUV.html
 pub struct WebpYuvBox {
     y: NonNull<[u8]>,
     u: NonNull<[u8]>,
@@ -90,6 +128,16 @@ pub struct WebpYuvBox {
 }
 
 impl WebpYuvBox {
+    /// Creates `WebpYuvBox` from raw pointers.
+    ///
+    /// ## Safety
+    ///
+    /// - `y`, `u`, `v` must be non-null.
+    /// - The pointees must be valid as `[u8]`.
+    /// - The pointees must be exclusively accessible.
+    /// - The head pointer of `y` must be freeable via `WebPFree`.
+    /// - The pointees of `u` and `v` must be within the allocated area
+    ///   designated by the head pointer of `y`.
     pub unsafe fn from_raw_yuv(y: *mut [u8], u: *mut [u8], v: *mut [u8]) -> WebpYuvBox {
         Self {
             y: NonNull::new_unchecked(y),
@@ -98,6 +146,7 @@ impl WebpYuvBox {
         }
     }
 
+    /// Turns `WebpYuvBox` into raw pointers without freeing anything.
     pub fn into_raw_yuv(self) -> (*mut [u8], *mut [u8], *mut [u8]) {
         let y = self.y.as_ptr();
         let u = self.u.as_ptr();
@@ -106,33 +155,41 @@ impl WebpYuvBox {
         (y, u, v)
     }
 
+    /// Immutably deferences to the `y` slice.
     pub fn y(&self) -> &[u8] {
         unsafe { self.y.as_ref() }
     }
+    /// Mutably deferences to the `y` slice.
     pub fn y_mut(&mut self) -> &mut [u8] {
         unsafe { self.y.as_mut() }
     }
 
+    /// Immutably deferences to the `u` slice.
     pub fn u(&self) -> &[u8] {
         unsafe { self.u.as_ref() }
     }
+    /// Mutably deferences to the `u` slice.
     pub fn u_mut(&mut self) -> &mut [u8] {
         unsafe { self.u.as_mut() }
     }
 
+    /// Immutably deferences to the `v` slice.
     pub fn v(&self) -> &[u8] {
         unsafe { self.v.as_ref() }
     }
+    /// Mutably deferences to the `v` slice.
     pub fn v_mut(&mut self) -> &mut [u8] {
         unsafe { self.v.as_mut() }
     }
 
+    /// Immutably, simultaneously dereferences to the `y`, `u`, and `v` slices.
     pub fn yuv(&self) -> (&[u8], &[u8], &[u8]) {
         let y = unsafe { self.y.as_ref() };
         let u = unsafe { self.u.as_ref() };
         let v = unsafe { self.v.as_ref() };
         (y, u, v)
     }
+    /// Mutably, simultaneously dereferences to the `y`, `u`, and `v` slices.
     pub fn yuv_mut(&mut self) -> (&mut [u8], &mut [u8], &mut [u8]) {
         let y = unsafe { self.y.as_mut() };
         let u = unsafe { self.u.as_mut() };
@@ -140,6 +197,7 @@ impl WebpYuvBox {
         (y, u, v)
     }
 
+    /// Turns into a `y` pointer, discarding `u`, `v` slices.
     pub fn into_y(self) -> WebpBox<[u8]> {
         let y = self.y;
         mem::forget(self);

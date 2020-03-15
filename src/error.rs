@@ -1,5 +1,8 @@
+//! Error type definitions.
+
 use std::fmt;
 
+/// An error with no information.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WebPSimpleError;
 

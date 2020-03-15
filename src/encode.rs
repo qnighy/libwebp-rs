@@ -6,7 +6,17 @@ use crate::boxed::{wrap_bytes, WebpBox};
 use crate::error::WebPSimpleError;
 
 /// Return the encoder's version number, packed in hexadecimal using 8bits for
-/// each of major/minor/revision. E.g: v2.5.7 is 0x020507.
+/// each of major/minor/revision.
+///
+/// E.g: v2.5.7 is 0x020507.
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::WebPGetEncoderVersion;
+///
+/// let version = WebPGetEncoderVersion();
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPGetEncoderVersion() -> u32 {
     (unsafe { sys::WebPGetEncoderVersion() }) as u32
@@ -42,6 +52,10 @@ fn encode_size_check(len: usize, width: u32, height: u32, stride: u32, pixelwidt
     );
 }
 
+/// Same as [`WebPEncodeRGBA`], but expecting R, G, B, R, G, B...
+/// ordered data.
+///
+/// [`WebPEncodeRGBA`]: fn.WebPEncodeRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPEncodeRGB(
     rgb: &[u8],
@@ -69,6 +83,10 @@ pub fn WebPEncodeRGB(
     }
 }
 
+/// Same as [`WebPEncodeRGBA`], but expecting B, G, R, B, G, R...
+/// ordered data.
+///
+/// [`WebPEncodeRGBA`]: fn.WebPEncodeRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPEncodeBGR(
     bgr: &[u8],
@@ -96,6 +114,56 @@ pub fn WebPEncodeBGR(
     }
 }
 
+/// Encodes images pointed to by `rgba` and returns the WebP binary data.
+///
+/// The ordering of samples in memory is R, G, B, A, R, G, B, A... in scan
+/// order (endian-independent).
+///
+/// ## Compression
+///
+/// This function compresses using the lossy format, and the `quality_factor`
+/// can go from 0 (smaller output, lower quality) to 100 (best quality,
+/// larger output).
+///
+/// For lossless compression, you can use the [`WebPEncodeLosslessRGBA`]
+/// family.
+///
+/// [`WebPEncodeLosslessRGBA`]: fn.WebPEncodeLosslessRGBA.html
+///
+/// ## Errors
+///
+/// Returns `Err` if `data` doesn't contain a valid WebP header.
+///
+/// ## Panics
+///
+/// Panics when `stride` is too small or `rgba` has a wrong size.
+///
+/// ## Variants
+///
+/// - `WebPEncodeRGBA`
+/// - [`WebPEncodeBGRA`]
+/// - [`WebPEncodeRGB`]
+/// - [`WebPEncodeBGR`]
+///
+/// [`WebPEncodeBGRA`]: fn.WebPEncodeBGRA.html
+/// [`WebPEncodeRGB`]: fn.WebPEncodeRGB.html
+/// [`WebPEncodeBGR`]: fn.WebPEncodeBGR.html
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::WebPEncodeRGBA;
+///
+/// let buf: &[u8] = &[
+///     255, 255, 255, 255, // white
+///     255, 0, 0, 255, // red
+///     0, 255, 0, 255, // green
+///     0, 0, 255, 255, // blue
+/// ];
+/// let data = WebPEncodeRGBA(buf, 2, 2, 8, 75.0).unwrap();
+/// assert_eq!(&data[..4], b"RIFF");
+/// assert_eq!(&data[8..12], b"WEBP");
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPEncodeRGBA(
     rgba: &[u8],
@@ -123,6 +191,10 @@ pub fn WebPEncodeRGBA(
     }
 }
 
+/// Same as [`WebPEncodeRGBA`], but expecting B, G, R, A, B, G, R, A...
+/// ordered data.
+///
+/// [`WebPEncodeRGBA`]: fn.WebPEncodeRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPEncodeBGRA(
     bgra: &[u8],
@@ -150,6 +222,10 @@ pub fn WebPEncodeBGRA(
     }
 }
 
+/// Same as [`WebPEncodeLosslessRGBA`], but expecting R, G, B, R, G, B...
+/// ordered data.
+///
+/// [`WebPEncodeLosslessRGBA`]: fn.WebPEncodeLosslessRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPEncodeLosslessRGB(
     rgb: &[u8],
@@ -175,6 +251,10 @@ pub fn WebPEncodeLosslessRGB(
     }
 }
 
+/// Same as [`WebPEncodeLosslessRGBA`], but expecting B, G, R, B, G, R...
+/// ordered data.
+///
+/// [`WebPEncodeLosslessRGBA`]: fn.WebPEncodeLosslessRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPEncodeLosslessBGR(
     bgr: &[u8],
@@ -200,6 +280,61 @@ pub fn WebPEncodeLosslessBGR(
     }
 }
 
+/// Encodes images pointed to by `rgba` and returns the WebP binary data.
+///
+/// The ordering of samples in memory is R, G, B, A, R, G, B, A... in scan
+/// order (endian-independent).
+///
+/// ## Compression
+///
+/// This function compresses using the lossless format. Files are usually
+/// larger than lossy format, but will not suffer any compression loss.
+///
+/// For lossy compression, you can use the [`WebPEncodeRGBA`] family.
+///
+/// [`WebPEncodeRGBA`]: fn.WebPEncodeRGBA.html
+///
+/// Note these functions, like the lossy versions, use the library's default
+/// settings. For lossless this means `exact` is disabled. RGB values in
+/// transparent areas will be modified to improve compression. To avoid this,
+/// use `WebPEncode()` and set `WebPConfig::exact` to `1`.
+///
+/// (The Rust binding does not yet have the corresponding function.)
+///
+/// ## Errors
+///
+/// Returns `Err` if `data` doesn't contain a valid WebP header.
+///
+/// ## Panics
+///
+/// Panics when `stride` is too small or `rgba` has a wrong size.
+///
+/// ## Variants
+///
+/// - `WebPEncodeLosslessRGBA`
+/// - [`WebPEncodeLosslessBGRA`]
+/// - [`WebPEncodeLosslessRGB`]
+/// - [`WebPEncodeLosslessBGR`]
+///
+/// [`WebPEncodeLosslessBGRA`]: fn.WebPEncodeLosslessBGRA.html
+/// [`WebPEncodeLosslessRGB`]: fn.WebPEncodeLosslessRGB.html
+/// [`WebPEncodeLosslessBGR`]: fn.WebPEncodeLosslessBGR.html
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::WebPEncodeLosslessRGBA;
+///
+/// let buf: &[u8] = &[
+///     255, 255, 255, 255, // white
+///     255, 0, 0, 255, // red
+///     0, 255, 0, 255, // green
+///     0, 0, 255, 255, // blue
+/// ];
+/// let data = WebPEncodeLosslessRGBA(buf, 2, 2, 8).unwrap();
+/// assert_eq!(&data[..4], b"RIFF");
+/// assert_eq!(&data[8..12], b"WEBP");
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPEncodeLosslessRGBA(
     rgba: &[u8],
@@ -225,6 +360,10 @@ pub fn WebPEncodeLosslessRGBA(
     }
 }
 
+/// Same as [`WebPEncodeLosslessRGBA`], but expecting B, G, R, A, B, G, R, A...
+/// ordered data.
+///
+/// [`WebPEncodeLosslessRGBA`]: fn.WebPEncodeLosslessRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPEncodeLosslessBGRA(
     bgra: &[u8],

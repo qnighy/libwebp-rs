@@ -8,16 +8,42 @@ use crate::boxed::{wrap_bytes, WebpBox, WebpYuvBox};
 use crate::error::WebPSimpleError;
 
 /// Return the decoder's version number, packed in hexadecimal using 8bits for
-/// each of major/minor/revision. E.g: v2.5.7 is 0x020507.
+/// each of major/minor/revision.
+///
+/// E.g: v2.5.7 is `0x020507`.
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::WebPGetDecoderVersion;
+///
+/// let version = WebPGetDecoderVersion();
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPGetDecoderVersion() -> u32 {
     (unsafe { sys::WebPGetDecoderVersion() }) as u32
 }
 
 /// Retrieve basic header information: width, height.
-/// This function will also validate the header, returning true on success,
-/// false otherwise. '*width' and '*height' are only valid on successful return.
-/// Pointers 'width' and 'height' can be passed NULL if deemed irrelevant.
+///
+/// This function will also validate the header, returning
+/// `Ok((width, height))` on success, `Err(_)` otherwise.
+///
+/// ## Errors
+///
+/// Returns `Err` if `data` doesn't contain a valid WebP header.
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::WebPGetInfo;
+///
+/// let data: &[u8];
+/// # let data: &[u8] = include_bytes!("lena.webp");
+///
+/// let (width, height) = WebPGetInfo(data).expect("Invalid WebP data");
+/// # assert_eq!((width, height), (128, 128));
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPGetInfo(data: &[u8]) -> Result<(u32, u32), WebPSimpleError> {
     let mut width: c_int = 0;
@@ -30,11 +56,48 @@ pub fn WebPGetInfo(data: &[u8]) -> Result<(u32, u32), WebPSimpleError> {
     }
 }
 
-/// Decodes WebP images pointed to by 'data' and returns RGBA samples, along
-/// with the dimensions in *width and *height. The ordering of samples in
-/// memory is R, G, B, A, R, G, B, A... in scan order (endian-independent).
-/// The returned pointer should be deleted calling WebPFree().
-/// Returns NULL in case of error.
+/// Decodes WebP images pointed to by `data` and returns RGBA samples, along
+/// with the dimensions (width and height).
+///
+/// The ordering of samples in memory is R, G, B, A, R, G, B, A... in scan
+/// order (endian-independent).
+///
+/// ## Errors
+///
+/// Returns `Err` if `data` doesn't contain a valid WebP image.
+///
+/// ## Variants
+///
+/// - `WebPDecodeRGBA`
+/// - [`WebPDecodeARGB`]
+/// - [`WebPDecodeBGRA`]
+/// - [`WebPDecodeRGB`]
+/// - [`WebPDecodeBGR`]
+///
+/// [`WebPDecodeARGB`]: fn.WebPDecodeARGB.html
+/// [`WebPDecodeBGRA`]: fn.WebPDecodeBGRA.html
+/// [`WebPDecodeRGB`]: fn.WebPDecodeRGB.html
+/// [`WebPDecodeBGR`]: fn.WebPDecodeBGR.html
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::WebPDecodeRGBA;
+///
+/// let data: &[u8];
+/// # let data: &[u8] = include_bytes!("lena.webp");
+///
+/// let (width, height, buf) = WebPDecodeRGBA(data).expect("Invalid WebP data");
+/// # assert_eq!((width, height), (128, 128));
+/// assert_eq!(buf.len(), width as usize * height as usize * 4);
+/// eprintln!(
+///     "top-left pixel: rgba({}, {}, {}, {})",
+///     buf[0],
+///     buf[1],
+///     buf[2],
+///     buf[3] as f64 / 255.0,
+/// )
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPDecodeRGBA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
@@ -44,7 +107,10 @@ pub fn WebPDecodeRGBA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimp
     Ok((width as u32, height as u32, buf))
 }
 
-/// Same as WebPDecodeRGBA, but returning A, R, G, B, A, R, G, B... ordered data.
+/// Same as [`WebPDecodeRGBA`], but returning A, R, G, B, A, R, G, B...
+/// ordered data.
+///
+/// [`WebPDecodeRGBA`]: fn.WebPDecodeRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeARGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
@@ -54,7 +120,10 @@ pub fn WebPDecodeARGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimp
     Ok((width as u32, height as u32, buf))
 }
 
-/// Same as WebPDecodeRGBA, but returning B, G, R, A, B, G, R, A... ordered data.
+/// Same as [`WebPDecodeRGBA`], but returning B, G, R, A, B, G, R, A...
+/// ordered data.
+///
+/// [`WebPDecodeRGBA`]: fn.WebPDecodeRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeBGRA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
@@ -64,8 +133,11 @@ pub fn WebPDecodeBGRA(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimp
     Ok((width as u32, height as u32, buf))
 }
 
-/// Same as WebPDecodeRGBA, but returning R, G, B, R, G, B... ordered data.
+/// Same as [`WebPDecodeRGBA`], but returning R, G, B, R, G, B... ordered data.
+///
 /// If the bitstream contains transparency, it is ignored.
+///
+/// [`WebPDecodeRGBA`]: fn.WebPDecodeRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeRGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
@@ -75,7 +147,11 @@ pub fn WebPDecodeRGB(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpl
     Ok((width as u32, height as u32, buf))
 }
 
-/// Same as WebPDecodeRGB, but returning B, G, R, B, G, R... ordered data.
+/// Same as [`WebPDecodeRGBA`], but returning B, G, R, B, G, R... ordered data.
+///
+/// If the bitstream contains transparency, it is ignored.
+///
+/// [`WebPDecodeRGBA`]: fn.WebPDecodeRGBA.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeBGR(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpleError> {
     let mut width: c_int = 0;
@@ -85,15 +161,53 @@ pub fn WebPDecodeBGR(data: &[u8]) -> Result<(u32, u32, WebpBox<[u8]>), WebPSimpl
     Ok((width as u32, height as u32, buf))
 }
 
-/// Decode WebP images pointed to by 'data' to Y'UV format(*). The pointer
-/// returned is the Y samples buffer. Upon return, *u and *v will point to
-/// the U and V chroma data. These U and V buffers need NOT be passed to
-/// WebPFree(), unlike the returned Y luma one. The dimension of the U and V
-/// planes are both (*width + 1) / 2 and (*height + 1)/ 2.
-/// Upon return, the Y buffer has a stride returned as '*stride', while U and V
-/// have a common stride returned as '*uv_stride'.
-/// Return NULL in case of error.
-/// (*) Also named Y'CbCr. See: http://en.wikipedia.org/wiki/YCbCr
+/// Decodes WebP images pointed to by `data` to Y'UV format[^1].
+///
+/// [^1] Also named Y'CbCr. See: [http://en.wikipedia.org/wiki/YCbCr](http://en.wikipedia.org/wiki/YCbCr)
+///
+/// ## Return value
+///
+/// It retuns a tuple with the following data in this order:
+///
+/// - width
+/// - height
+/// - stride
+/// - uv\_stride
+/// - a [`WebpYuvBox`] which contains the pointers to the Y, U and V planes.
+///
+/// [`WebpYuvBox`]: boxed/struct.WebPYuvBox.html
+///
+/// The dimension of the U and V planes are both `(width + 1) / 2` and `(height + 1)/ 2`.
+/// The Y buffer has a stride returned as `stride`, while U and V
+/// have a common stride returned as `uv_stride`.
+///
+/// ## Errors
+///
+/// Returns `Err` if `data` doesn't contain a valid WebP image.
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::WebPDecodeYUV;
+///
+/// let data: &[u8];
+/// # let data: &[u8] = include_bytes!("lena.webp");
+///
+/// let (width, height, stride, uv_stride, buf) =
+///     WebPDecodeYUV(data).expect("Invalid WebP data");
+/// # assert_eq!((width, height), (128, 128));
+/// assert!(width <= stride);
+/// assert!((width + 1) / 2 <= uv_stride);
+/// assert_eq!(buf.y().len(), stride as usize * height as usize);
+/// assert_eq!(buf.u().len(), uv_stride as usize * ((height as usize + 1) / 2));
+/// assert_eq!(buf.v().len(), uv_stride as usize * ((height as usize + 1) / 2));
+/// eprintln!(
+///     "top-left pixel: yuv({}, {}, {})",
+///     buf.y()[0],
+///     buf.u()[0],
+///     buf.v()[0],
+/// )
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPDecodeYUV(data: &[u8]) -> Result<(u32, u32, u32, u32, WebpYuvBox), WebPSimpleError> {
     let mut width: c_int = 0;
@@ -136,6 +250,55 @@ pub fn WebPDecodeYUV(data: &[u8]) -> Result<(u32, u32, u32, u32, WebpYuvBox), We
     }
 }
 
+/// Decodes WebP images pointed to by `data` and writes RGBA samples to
+/// `output_buffer`.
+///
+/// The parameter 'output_stride' specifies the distance (in bytes)
+/// between scanlines. Hence, `output_buffer.len()` is expected to be at least
+/// `output_stride` x `picture-height`.
+///
+/// The ordering of samples in memory is R, G, B, A, R, G, B, A... in scan
+/// order (endian-independent).
+///
+/// ## Errors
+///
+/// Returns `Err` if `data` doesn't contain a valid WebP image, or
+/// `output_buffer` is too small.
+///
+/// ## Variants
+///
+/// - `WebPDecodeRGBAInto`
+/// - [`WebPDecodeARGBInto`]
+/// - [`WebPDecodeBGRAInto`]
+/// - [`WebPDecodeRGBInto`]
+/// - [`WebPDecodeBGRInto`]
+///
+/// [`WebPDecodeARGBInto`]: fn.WebPDecodeARGBInto.html
+/// [`WebPDecodeBGRAInto`]: fn.WebPDecodeBGRAInto.html
+/// [`WebPDecodeRGBInto`]: fn.WebPDecodeRGBInto.html
+/// [`WebPDecodeBGRInto`]: fn.WebPDecodeBGRInto.html
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::{WebPGetInfo, WebPDecodeRGBAInto};
+///
+/// let data: &[u8];
+/// # let data: &[u8] = include_bytes!("lena.webp");
+///
+/// let (width, height) = WebPGetInfo(data).expect("Invalid WebP header");
+/// # assert_eq!((width, height), (128, 128));
+/// let stride = width * 4;
+/// let mut buf = vec![0; stride as usize * height as usize];
+/// WebPDecodeRGBAInto(data, &mut buf, stride).expect("Invalid WebP data");
+/// eprintln!(
+///     "top-left pixel: rgba({}, {}, {}, {})",
+///     buf[0],
+///     buf[1],
+///     buf[2],
+///     buf[3] as f64 / 255.0,
+/// )
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPDecodeRGBAInto(
     data: &[u8],
@@ -160,6 +323,10 @@ pub fn WebPDecodeRGBAInto(
     }
 }
 
+/// Same as [`WebPDecodeRGBAInto`], but returning A, R, G, B, A, R, G, B...
+/// ordered data.
+///
+/// [`WebPDecodeRGBAInto`]: fn.WebPDecodeRGBAInto.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeARGBInto(
     data: &[u8],
@@ -184,6 +351,10 @@ pub fn WebPDecodeARGBInto(
     }
 }
 
+/// Same as [`WebPDecodeRGBAInto`], but returning B, G, R, A, B, G, R, A...
+/// ordered data.
+///
+/// [`WebPDecodeRGBAInto`]: fn.WebPDecodeRGBAInto.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeBGRAInto(
     data: &[u8],
@@ -208,6 +379,12 @@ pub fn WebPDecodeBGRAInto(
     }
 }
 
+/// Same as [`WebPDecodeRGBAInto`], but returning R, G, B, R, G, B...
+/// ordered data.
+///
+/// If the bitstream contains transparency, it is ignored.
+///
+/// [`WebPDecodeRGBAInto`]: fn.WebPDecodeRGBAInto.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeRGBInto(
     data: &[u8],
@@ -232,6 +409,12 @@ pub fn WebPDecodeRGBInto(
     }
 }
 
+/// Same as [`WebPDecodeRGBAInto`], but returning B, G, R, B, G, R...
+/// ordered data.
+///
+/// If the bitstream contains transparency, it is ignored.
+///
+/// [`WebPDecodeRGBAInto`]: fn.WebPDecodeRGBAInto.html
 #[allow(non_snake_case)]
 pub fn WebPDecodeBGRInto(
     data: &[u8],
@@ -256,6 +439,49 @@ pub fn WebPDecodeBGRInto(
     }
 }
 
+/// A variant of [`WebPDecodeYUVInto`] that operates directly into
+/// pre-allocated buffers.
+///
+/// [`WebPDecodeYUVInto`]: fn.WebPDecodeYUVInto.html
+///
+/// ## Errors
+///
+/// Returns `Err` if `data` doesn't contain a valid WebP image, or
+/// any of the buffers is too small.
+///
+/// ## Examples
+///
+/// ```rust
+/// use libwebp::{WebPGetInfo, WebPDecodeYUVInto};
+///
+/// let data: &[u8];
+/// # let data: &[u8] = include_bytes!("lena.webp");
+///
+/// let (width, height) = WebPGetInfo(data).expect("Invalid WebP header");
+/// # assert_eq!((width, height), (128, 128));
+/// let luma_stride = width;
+/// let u_stride = (width + 1) / 2;
+/// let v_stride = (width + 1) / 2;
+/// let mut luma = vec![0; luma_stride as usize * height as usize];
+/// let mut u = vec![0; u_stride as usize * ((height + 1) / 2) as usize];
+/// let mut v = vec![0; v_stride as usize * ((height + 1) / 2) as usize];
+///
+/// WebPDecodeYUVInto(
+///     data,
+///     &mut luma,
+///     luma_stride,
+///     &mut u,
+///     u_stride,
+///     &mut v,
+///     v_stride,
+/// ).expect("Invalid WebP header");
+/// eprintln!(
+///     "top-left pixel: yuv({}, {}, {})",
+///     luma[0],
+///     u[0],
+///     v[0],
+/// )
+/// ```
 #[allow(non_snake_case)]
 pub fn WebPDecodeYUVInto(
     data: &[u8],
