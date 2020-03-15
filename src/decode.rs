@@ -1,6 +1,7 @@
 use libwebp_sys as sys;
 use std::mem;
 use std::os::raw::*;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::ptr::{self, NonNull};
 use std::slice;
 
@@ -622,6 +623,9 @@ pub fn WebPIsRGBMode(mode: WEBP_CSP_MODE) -> bool {
 // #[derive(Debug)]
 // pub struct WebPDecBuffer(sys::WebPDecBuffer);
 //
+// unsafe impl Send for WebPDecBuffer {}
+// unsafe impl Sync for WebPDecBuffer {}
+//
 // impl Drop for WebPDecBuffer {
 //     fn drop(&mut self) {
 //         unsafe {
@@ -731,6 +735,11 @@ impl VP8StatusCode {
 
 #[derive(Debug)]
 pub struct WebPIDecoder(NonNull<sys::WebPIDecoder>);
+
+unsafe impl Send for WebPIDecoder {}
+unsafe impl Sync for WebPIDecoder {}
+impl UnwindSafe for WebPIDecoder {}
+impl RefUnwindSafe for WebPIDecoder {}
 
 impl Drop for WebPIDecoder {
     fn drop(&mut self) {
@@ -1116,6 +1125,19 @@ mod tests {
         assert_eq!(&luma[..6], &[165, 165, 165, 165, 162, 162]);
         assert_eq!(&u[..6], &[98, 98, 98, 98, 98, 98]);
         assert_eq!(&v[..6], &[161, 161, 161, 161, 161, 161]);
+    }
+
+    #[allow(unused)]
+    fn test_auto_traits() {
+        fn is_send<T: Send>() {}
+        fn is_sync<T: Sync>() {}
+        fn is_unwind_safe<T: UnwindSafe>() {}
+        fn is_ref_unwind_safe<T: RefUnwindSafe>() {}
+
+        is_send::<WebPIDecoder>();
+        is_sync::<WebPIDecoder>();
+        is_unwind_safe::<WebPIDecoder>();
+        is_ref_unwind_safe::<WebPIDecoder>();
     }
 
     #[test]

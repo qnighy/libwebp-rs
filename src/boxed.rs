@@ -5,6 +5,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::*;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::ptr::NonNull;
 use std::slice;
 
@@ -35,6 +36,11 @@ pub struct WebpBox<T: ?Sized> {
     ptr: NonNull<T>,
     _marker: PhantomData<T>,
 }
+
+unsafe impl<T: ?Sized + Send> Send for WebpBox<T> {}
+unsafe impl<T: ?Sized + Sync> Sync for WebpBox<T> {}
+impl<T: ?Sized + UnwindSafe> UnwindSafe for WebpBox<T> {}
+impl<T: ?Sized + RefUnwindSafe> RefUnwindSafe for WebpBox<T> {}
 
 impl<T: ?Sized> WebpBox<T> {
     /// Creates `WebpBox` from a raw pointer.
@@ -126,6 +132,9 @@ pub struct WebpYuvBox {
     u: NonNull<[u8]>,
     v: NonNull<[u8]>,
 }
+
+unsafe impl Send for WebpYuvBox {}
+unsafe impl Sync for WebpYuvBox {}
 
 impl WebpYuvBox {
     /// Creates `WebpYuvBox` from raw pointers.
@@ -223,5 +232,30 @@ impl fmt::Debug for WebpYuvBox {
             .field("u", &self.u())
             .field("v", &self.v())
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::panic::{RefUnwindSafe, UnwindSafe};
+
+    #[allow(unused)]
+    fn test_auto_traits() {
+        fn is_send<T: Send>() {}
+        fn is_sync<T: Sync>() {}
+        fn is_unwind_safe<T: UnwindSafe>() {}
+        fn is_ref_unwind_safe<T: RefUnwindSafe>() {}
+
+        is_send::<WebpBox<[u8]>>();
+        is_sync::<WebpBox<[u8]>>();
+        is_unwind_safe::<WebpBox<[u8]>>();
+        is_ref_unwind_safe::<WebpBox<[u8]>>();
+
+        is_send::<WebpYuvBox>();
+        is_sync::<WebpYuvBox>();
+        is_unwind_safe::<WebpYuvBox>();
+        is_ref_unwind_safe::<WebpYuvBox>();
     }
 }
