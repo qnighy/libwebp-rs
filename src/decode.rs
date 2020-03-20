@@ -1,4 +1,5 @@
 use libwebp_sys as sys;
+use std::marker::PhantomPinned;
 use std::mem;
 use std::os::raw::*;
 use std::panic::{RefUnwindSafe, UnwindSafe};
@@ -730,6 +731,20 @@ impl VP8StatusCode {
             VP8_STATUS_USER_ABORT => sys::VP8_STATUS_USER_ABORT,
             VP8_STATUS_NOT_ENOUGH_DATA => sys::VP8_STATUS_NOT_ENOUGH_DATA,
         }
+    }
+}
+
+#[repr(transparent)]
+pub struct WebPIDecoder(sys::WebPIDecoder, PhantomPinned);
+
+unsafe impl Send for WebPIDecoder {}
+unsafe impl Sync for WebPIDecoder {}
+impl UnwindSafe for WebPIDecoder {}
+impl RefUnwindSafe for WebPIDecoder {}
+
+impl std::fmt::Debug for WebPIDecoder {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str("WebPIDecoder")
     }
 }
 
