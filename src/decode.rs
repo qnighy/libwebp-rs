@@ -734,14 +734,14 @@ impl VP8StatusCode {
 }
 
 #[derive(Debug)]
-pub struct WebPIDecoder(NonNull<sys::WebPIDecoder>);
+pub struct WebPIDecoderBox(NonNull<sys::WebPIDecoder>);
 
-unsafe impl Send for WebPIDecoder {}
-unsafe impl Sync for WebPIDecoder {}
-impl UnwindSafe for WebPIDecoder {}
-impl RefUnwindSafe for WebPIDecoder {}
+unsafe impl Send for WebPIDecoderBox {}
+unsafe impl Sync for WebPIDecoderBox {}
+impl UnwindSafe for WebPIDecoderBox {}
+impl RefUnwindSafe for WebPIDecoderBox {}
 
-impl Drop for WebPIDecoder {
+impl Drop for WebPIDecoderBox {
     fn drop(&mut self) {
         unsafe {
             sys::WebPIDelete(self.0.as_ptr());
@@ -749,9 +749,9 @@ impl Drop for WebPIDecoder {
     }
 }
 
-impl WebPIDecoder {
+impl WebPIDecoderBox {
     pub unsafe fn from_raw(raw: NonNull<sys::WebPIDecoder>) -> Self {
-        WebPIDecoder(raw)
+        WebPIDecoderBox(raw)
     }
 
     pub fn into_raw(self) -> NonNull<sys::WebPIDecoder> {
@@ -771,10 +771,10 @@ impl WebPIDecoder {
 
 // TODO: Implment external version
 #[allow(non_snake_case)]
-pub fn WebPINewDecoder() -> WebPIDecoder {
+pub fn WebPINewDecoder() -> WebPIDecoderBox {
     let result = unsafe { sys::WebPINewDecoder(ptr::null_mut()) };
     if let Some(result) = NonNull::new(result) {
-        unsafe { WebPIDecoder::from_raw(result) }
+        unsafe { WebPIDecoderBox::from_raw(result) }
     } else {
         panic!("WebPINewDecoder: allocation failed");
     }
@@ -782,11 +782,11 @@ pub fn WebPINewDecoder() -> WebPIDecoder {
 
 // TODO: Implment external version
 #[allow(non_snake_case)]
-pub fn WebPINewRGB(csp: WEBP_CSP_MODE) -> WebPIDecoder {
+pub fn WebPINewRGB(csp: WEBP_CSP_MODE) -> WebPIDecoderBox {
     assert!(WebPIsRGBMode(csp), "Not an RGB mode: {:?}", csp);
     let result = unsafe { sys::WebPINewRGB(csp.into_raw(), ptr::null_mut(), 0, 0) };
     if let Some(result) = NonNull::new(result) {
-        unsafe { WebPIDecoder::from_raw(result) }
+        unsafe { WebPIDecoderBox::from_raw(result) }
     } else {
         panic!("WebPINewRGB: allocation failed");
     }
@@ -794,7 +794,7 @@ pub fn WebPINewRGB(csp: WEBP_CSP_MODE) -> WebPIDecoder {
 
 // TODO: Implment external version
 #[allow(non_snake_case)]
-pub fn WebPINewYUVA() -> WebPIDecoder {
+pub fn WebPINewYUVA() -> WebPIDecoderBox {
     let result = unsafe {
         sys::WebPINewYUVA(
             ptr::null_mut(),
@@ -812,14 +812,14 @@ pub fn WebPINewYUVA() -> WebPIDecoder {
         )
     };
     if let Some(result) = NonNull::new(result) {
-        unsafe { WebPIDecoder::from_raw(result) }
+        unsafe { WebPIDecoderBox::from_raw(result) }
     } else {
         panic!("WebPINewYUVA: allocation failed");
     }
 }
 
 #[allow(non_snake_case)]
-pub fn WebPIAppend(idec: &mut WebPIDecoder, data: &[u8]) -> VP8StatusCode {
+pub fn WebPIAppend(idec: &mut WebPIDecoderBox, data: &[u8]) -> VP8StatusCode {
     if data.is_empty() {
         // libwebp AppendToMemBuffer (src/dec/idec_dec.c) doesn't expect empty slice at the beginning.
         // Since the decoder status cannot be observed otherwise, we just panic here for now.
@@ -831,7 +831,7 @@ pub fn WebPIAppend(idec: &mut WebPIDecoder, data: &[u8]) -> VP8StatusCode {
 
 // TODO: check if it's safe to inconsistently pass data into WebPIUpdate
 // #[allow(non_snake_case)]
-// pub fn WebPIUpdate(idec: &mut WebPIDecoder, data: &[u8]) -> VP8StatusCode {
+// pub fn WebPIUpdate(idec: &mut WebPIDecoderBox, data: &[u8]) -> VP8StatusCode {
 //     let result = unsafe { sys::WebPIUpdate(idec.as_mut_ptr(), data.as_ptr(), data.len()) };
 //     VP8StatusCode::from_raw(result)
 // }
@@ -846,7 +846,7 @@ pub struct WebPIDecGetRGBResult<'a> {
 }
 
 #[allow(non_snake_case)]
-pub fn WebPIDecGetRGB(idec: &WebPIDecoder) -> Result<WebPIDecGetRGBResult<'_>, WebPSimpleError> {
+pub fn WebPIDecGetRGB(idec: &WebPIDecoderBox) -> Result<WebPIDecGetRGBResult<'_>, WebPSimpleError> {
     let mut last_y: c_int = 0;
     let mut width: c_int = 0;
     let mut height: c_int = 0;
@@ -891,7 +891,9 @@ pub struct WebPIDecGetYUVAResult<'a> {
 }
 
 #[allow(non_snake_case)]
-pub fn WebPIDecGetYUVA(idec: &WebPIDecoder) -> Result<WebPIDecGetYUVAResult<'_>, WebPSimpleError> {
+pub fn WebPIDecGetYUVA(
+    idec: &WebPIDecoderBox,
+) -> Result<WebPIDecGetYUVAResult<'_>, WebPSimpleError> {
     let mut last_y: c_int = 0;
     let mut u: *mut u8 = ptr::null_mut();
     let mut v: *mut u8 = ptr::null_mut();
@@ -1134,10 +1136,10 @@ mod tests {
         fn is_unwind_safe<T: UnwindSafe>() {}
         fn is_ref_unwind_safe<T: RefUnwindSafe>() {}
 
-        is_send::<WebPIDecoder>();
-        is_sync::<WebPIDecoder>();
-        is_unwind_safe::<WebPIDecoder>();
-        is_ref_unwind_safe::<WebPIDecoder>();
+        is_send::<WebPIDecoderBox>();
+        is_sync::<WebPIDecoderBox>();
+        is_unwind_safe::<WebPIDecoderBox>();
+        is_ref_unwind_safe::<WebPIDecoderBox>();
     }
 
     #[test]
