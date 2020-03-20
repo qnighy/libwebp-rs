@@ -749,7 +749,7 @@ impl std::fmt::Debug for WebPIDecoder {
 }
 
 #[derive(Debug)]
-pub struct WebPIDecoderBox(NonNull<sys::WebPIDecoder>);
+pub struct WebPIDecoderBox(NonNull<WebPIDecoder>);
 
 unsafe impl Send for WebPIDecoderBox {}
 unsafe impl Sync for WebPIDecoderBox {}
@@ -759,28 +759,28 @@ impl RefUnwindSafe for WebPIDecoderBox {}
 impl Drop for WebPIDecoderBox {
     fn drop(&mut self) {
         unsafe {
-            sys::WebPIDelete(self.0.as_ptr());
+            sys::WebPIDelete(self.0.as_ptr() as *mut sys::WebPIDecoder);
         }
     }
 }
 
 impl WebPIDecoderBox {
     pub unsafe fn from_raw(raw: NonNull<sys::WebPIDecoder>) -> Self {
-        WebPIDecoderBox(raw)
+        WebPIDecoderBox(raw.cast::<WebPIDecoder>())
     }
 
     pub fn into_raw(self) -> NonNull<sys::WebPIDecoder> {
         let ret = self.0;
         mem::forget(self);
-        ret
+        ret.cast::<sys::WebPIDecoder>()
     }
 
     pub fn as_ptr(&self) -> *const sys::WebPIDecoder {
-        unsafe { self.0.as_ref() }
+        unsafe { self.0.as_ref() as *const WebPIDecoder as *const sys::WebPIDecoder }
     }
 
     pub fn as_mut_ptr(&mut self) -> *mut sys::WebPIDecoder {
-        unsafe { self.0.as_mut() }
+        unsafe { self.0.as_mut() as *mut WebPIDecoder as *mut sys::WebPIDecoder }
     }
 }
 
