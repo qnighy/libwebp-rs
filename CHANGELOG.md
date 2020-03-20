@@ -1,5 +1,7 @@
 ## Unreleased
 
+- MSRV is now 1.32.0
+
 ## 0.1.2
 
 - Implement bindings for incremental decoding
