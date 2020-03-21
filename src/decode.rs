@@ -1,5 +1,5 @@
 use libwebp_sys as sys;
-use std::marker::PhantomPinned;
+use std::marker::{PhantomPinned, Unpin};
 use std::mem;
 use std::os::raw::*;
 use std::panic::{RefUnwindSafe, UnwindSafe};
@@ -774,6 +774,8 @@ unsafe impl Send for WebPIDecoderBox {}
 unsafe impl Sync for WebPIDecoderBox {}
 impl UnwindSafe for WebPIDecoderBox {}
 impl RefUnwindSafe for WebPIDecoderBox {}
+// Prior to 1.38.0 it isn't automatically Unpin
+impl Unpin for WebPIDecoderBox {}
 
 impl Drop for WebPIDecoderBox {
     fn drop(&mut self) {
@@ -1167,7 +1169,7 @@ mod tests {
 
     #[test]
     fn test_auto_traits() {
-        use std::marker::{PhantomData, Unpin};
+        use std::marker::PhantomData;
 
         struct Test1<T: ?Sized>(Test2<T>);
         struct Test2<T: ?Sized>(PhantomData<T>);
