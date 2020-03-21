@@ -735,8 +735,20 @@ impl VP8StatusCode {
     }
 }
 
+// We need this to convert NonNull<T> -> NonNull<U> where T, U are extern.
+macro_rules! cast_nonnull {
+    ($e:expr, $T:ty) => {
+        #[allow(unused_unsafe)]
+        unsafe {
+            NonNull::new_unchecked(NonNull::as_ptr($e) as *mut $T)
+        }
+    };
+}
+
+// We place sys::WebPIDecoder at last
+// because with cfg(feature = "extern-types"), it is unsized.
 #[repr(transparent)]
-pub struct WebPIDecoder(sys::WebPIDecoder, PhantomPinned);
+pub struct WebPIDecoder(PhantomPinned, sys::WebPIDecoder);
 
 unsafe impl Send for WebPIDecoder {}
 unsafe impl Sync for WebPIDecoder {}
@@ -759,11 +771,11 @@ impl WebPIDecoder {
     }
 
     pub fn as_ptr(self: Pin<&Self>) -> *const sys::WebPIDecoder {
-        &self.0
+        &self.1
     }
 
     pub fn as_mut_ptr(self: Pin<&mut Self>) -> *mut sys::WebPIDecoder {
-        unsafe { &mut self.get_unchecked_mut().0 }
+        unsafe { &mut self.get_unchecked_mut().1 }
     }
 }
 
@@ -787,13 +799,13 @@ impl Drop for WebPIDecoderBox {
 
 impl WebPIDecoderBox {
     pub unsafe fn from_raw(raw: NonNull<sys::WebPIDecoder>) -> Self {
-        WebPIDecoderBox(raw.cast::<WebPIDecoder>())
+        WebPIDecoderBox(cast_nonnull!(raw, WebPIDecoder))
     }
 
     pub fn into_raw(self) -> NonNull<sys::WebPIDecoder> {
         let ret = self.0;
         mem::forget(self);
-        ret.cast::<sys::WebPIDecoder>()
+        cast_nonnull!(ret, sys::WebPIDecoder)
     }
 
     pub fn as_ref(&self) -> Pin<&WebPIDecoder> {
