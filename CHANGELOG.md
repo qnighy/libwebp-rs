@@ -1,6 +1,8 @@
 ## Unreleased
 
 - MSRV is now 1.33.0
+- Internal: bump dev-dependency of rand
+- Split `WebPIDecoder` into `WebPIDecoder` and `WebPIDecoderBox`
 
 ## 0.1.2
 
