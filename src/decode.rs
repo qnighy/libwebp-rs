@@ -1165,17 +1165,50 @@ mod tests {
         assert_eq!(&v[..6], &[161, 161, 161, 161, 161, 161]);
     }
 
-    #[allow(unused)]
+    #[test]
     fn test_auto_traits() {
-        fn is_send<T: Send>() {}
-        fn is_sync<T: Sync>() {}
-        fn is_unwind_safe<T: UnwindSafe>() {}
-        fn is_ref_unwind_safe<T: RefUnwindSafe>() {}
+        use std::marker::{PhantomData, Unpin};
+
+        struct Test1<T: ?Sized>(Test2<T>);
+        struct Test2<T: ?Sized>(PhantomData<T>);
+        impl<T: ?Sized> Test1<T> {
+            fn new() -> Self {
+                Test1(Test2(PhantomData))
+            }
+        }
+        impl<T: ?Sized> std::ops::Deref for Test1<T> {
+            type Target = Test2<T>;
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+        impl<T: ?Sized + Unpin> Test1<T> {
+            fn is_unpin(&self) -> bool {
+                true
+            }
+        }
+        impl<T: ?Sized> Test2<T> {
+            fn is_unpin(&self) -> bool {
+                false
+            }
+        }
+
+        fn is_send<T: ?Sized + Send>() {}
+        fn is_sync<T: ?Sized + Sync>() {}
+        fn is_unwind_safe<T: ?Sized + UnwindSafe>() {}
+        fn is_ref_unwind_safe<T: ?Sized + RefUnwindSafe>() {}
 
         is_send::<WebPIDecoderBox>();
         is_sync::<WebPIDecoderBox>();
         is_unwind_safe::<WebPIDecoderBox>();
         is_ref_unwind_safe::<WebPIDecoderBox>();
+        assert!(Test1::<WebPIDecoderBox>::new().is_unpin());
+
+        is_send::<WebPIDecoder>();
+        is_sync::<WebPIDecoder>();
+        is_unwind_safe::<WebPIDecoder>();
+        is_ref_unwind_safe::<WebPIDecoder>();
+        assert!(!Test1::<WebPIDecoder>::new().is_unpin());
     }
 
     #[test]
