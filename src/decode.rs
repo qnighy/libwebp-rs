@@ -3,6 +3,7 @@ use std::marker::PhantomPinned;
 use std::mem;
 use std::os::raw::*;
 use std::panic::{RefUnwindSafe, UnwindSafe};
+use std::pin::Pin;
 use std::ptr::{self, NonNull};
 use std::slice;
 
@@ -748,6 +749,24 @@ impl std::fmt::Debug for WebPIDecoder {
     }
 }
 
+impl WebPIDecoder {
+    pub unsafe fn from_ptr<'a>(raw: *const sys::WebPIDecoder) -> Pin<&'a Self> {
+        Pin::new_unchecked(&*(raw as *const WebPIDecoder))
+    }
+
+    pub unsafe fn from_mut_ptr<'a>(raw: *mut sys::WebPIDecoder) -> Pin<&'a mut Self> {
+        Pin::new_unchecked(&mut *(raw as *mut WebPIDecoder))
+    }
+
+    pub fn as_ptr(self: Pin<&Self>) -> *const sys::WebPIDecoder {
+        &self.0
+    }
+
+    pub fn as_mut_ptr(self: Pin<&mut Self>) -> *mut sys::WebPIDecoder {
+        unsafe { &mut self.get_unchecked_mut().0 }
+    }
+}
+
 #[derive(Debug)]
 pub struct WebPIDecoderBox(NonNull<WebPIDecoder>);
 
@@ -775,12 +794,12 @@ impl WebPIDecoderBox {
         ret.cast::<sys::WebPIDecoder>()
     }
 
-    pub fn as_ptr(&self) -> *const sys::WebPIDecoder {
-        unsafe { self.0.as_ref() as *const WebPIDecoder as *const sys::WebPIDecoder }
+    pub fn as_ref(&self) -> Pin<&WebPIDecoder> {
+        unsafe { Pin::new_unchecked(self.0.as_ref()) }
     }
 
-    pub fn as_mut_ptr(&mut self) -> *mut sys::WebPIDecoder {
-        unsafe { self.0.as_mut() as *mut WebPIDecoder as *mut sys::WebPIDecoder }
+    pub fn as_mut(&mut self) -> Pin<&mut WebPIDecoder> {
+        unsafe { Pin::new_unchecked(self.0.as_mut()) }
     }
 }
 
@@ -834,7 +853,7 @@ pub fn WebPINewYUVA() -> WebPIDecoderBox {
 }
 
 #[allow(non_snake_case)]
-pub fn WebPIAppend(idec: &mut WebPIDecoderBox, data: &[u8]) -> VP8StatusCode {
+pub fn WebPIAppend(idec: Pin<&mut WebPIDecoder>, data: &[u8]) -> VP8StatusCode {
     if data.is_empty() {
         // libwebp AppendToMemBuffer (src/dec/idec_dec.c) doesn't expect empty slice at the beginning.
         // Since the decoder status cannot be observed otherwise, we just panic here for now.
@@ -846,7 +865,7 @@ pub fn WebPIAppend(idec: &mut WebPIDecoderBox, data: &[u8]) -> VP8StatusCode {
 
 // TODO: check if it's safe to inconsistently pass data into WebPIUpdate
 // #[allow(non_snake_case)]
-// pub fn WebPIUpdate(idec: &mut WebPIDecoderBox, data: &[u8]) -> VP8StatusCode {
+// pub fn WebPIUpdate(idec: Pin<&mut WebPIDecoder>, data: &[u8]) -> VP8StatusCode {
 //     let result = unsafe { sys::WebPIUpdate(idec.as_mut_ptr(), data.as_ptr(), data.len()) };
 //     VP8StatusCode::from_raw(result)
 // }
@@ -861,7 +880,9 @@ pub struct WebPIDecGetRGBResult<'a> {
 }
 
 #[allow(non_snake_case)]
-pub fn WebPIDecGetRGB(idec: &WebPIDecoderBox) -> Result<WebPIDecGetRGBResult<'_>, WebPSimpleError> {
+pub fn WebPIDecGetRGB(
+    idec: Pin<&WebPIDecoder>,
+) -> Result<WebPIDecGetRGBResult<'_>, WebPSimpleError> {
     let mut last_y: c_int = 0;
     let mut width: c_int = 0;
     let mut height: c_int = 0;
@@ -907,7 +928,7 @@ pub struct WebPIDecGetYUVAResult<'a> {
 
 #[allow(non_snake_case)]
 pub fn WebPIDecGetYUVA(
-    idec: &WebPIDecoderBox,
+    idec: Pin<&WebPIDecoder>,
 ) -> Result<WebPIDecGetYUVAResult<'_>, WebPSimpleError> {
     let mut last_y: c_int = 0;
     let mut u: *mut u8 = ptr::null_mut();
@@ -1173,12 +1194,12 @@ mod tests {
             while idx < data.len() {
                 // TODO: include 0 as write_len
                 let write_len = std::cmp::min(rng.gen_range(1, 64), data.len() - idx);
-                let result = WebPIAppend(&mut idec, &data[idx..idx + write_len]);
+                let result = WebPIAppend(idec.as_mut(), &data[idx..idx + write_len]);
                 idx += write_len;
                 if result == VP8StatusCode::VP8_STATUS_OK {
                     break;
                 } else if result == VP8StatusCode::VP8_STATUS_SUSPENDED {
-                    if let Ok(result) = WebPIDecGetRGB(&mut idec) {
+                    if let Ok(result) = WebPIDecGetRGB(idec.as_ref()) {
                         if result.last_y >= 1 {
                             assert_eq!(
                                 &result.buf[..24],
@@ -1193,7 +1214,7 @@ mod tests {
                     panic!("Unexpected status: {:?}", result);
                 }
             }
-            let result = WebPIDecGetRGB(&mut idec).unwrap();
+            let result = WebPIDecGetRGB(idec.as_ref()).unwrap();
             assert_eq!(result.width, 128);
             assert_eq!(result.height, 128);
             assert_eq!(result.last_y, 128);
@@ -1217,12 +1238,12 @@ mod tests {
             while idx < data.len() {
                 // TODO: include 0 as write_len
                 let write_len = std::cmp::min(rng.gen_range(1, 64), data.len() - idx);
-                let result = WebPIAppend(&mut idec, &data[idx..idx + write_len]);
+                let result = WebPIAppend(idec.as_mut(), &data[idx..idx + write_len]);
                 idx += write_len;
                 if result == VP8StatusCode::VP8_STATUS_OK {
                     break;
                 } else if result == VP8StatusCode::VP8_STATUS_SUSPENDED {
-                    if let Ok(result) = WebPIDecGetYUVA(&mut idec) {
+                    if let Ok(result) = WebPIDecGetYUVA(idec.as_ref()) {
                         if result.last_y >= 1 {
                             assert_eq!(&result.luma[..6], &[165, 165, 165, 165, 162, 162]);
                             assert_eq!(&result.u[..6], &[98, 98, 98, 98, 98, 98]);
@@ -1233,7 +1254,7 @@ mod tests {
                     panic!("Unexpected status: {:?}", result);
                 }
             }
-            let result = WebPIDecGetYUVA(&mut idec).unwrap();
+            let result = WebPIDecGetYUVA(idec.as_ref()).unwrap();
             assert_eq!(result.width, 128);
             assert_eq!(result.height, 128);
             assert_eq!(result.last_y, 128);
