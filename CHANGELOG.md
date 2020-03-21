@@ -1,6 +1,6 @@
 ## Unreleased
 
-- MSRV is now 1.32.0
+- MSRV is now 1.33.0
 
 ## 0.1.2
 
