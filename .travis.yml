@@ -15,7 +15,7 @@ matrix:
     env: WEBP_VERSION=1.1.0
   - rust: stable
     env: WEBP_VERSION=1.1.0 WEBP_BUNDLED=true
-  - rust: 1.33.0
+  - rust: 1.36.0
     env: WEBP_VERSION=1.1.0
   - rust: beta
     env: WEBP_VERSION=1.1.0
