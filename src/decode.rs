@@ -1240,7 +1240,7 @@ mod tests {
             let mut idx = 0;
             while idx < data.len() {
                 // TODO: include 0 as write_len
-                let write_len = std::cmp::min(rng.gen_range(1, 64), data.len() - idx);
+                let write_len = std::cmp::min(rng.gen_range(1..64), data.len() - idx);
                 let result = WebPIAppend(idec.as_mut(), &data[idx..idx + write_len]);
                 idx += write_len;
                 if result == VP8StatusCode::VP8_STATUS_OK {
@@ -1284,7 +1284,7 @@ mod tests {
             let mut idx = 0;
             while idx < data.len() {
                 // TODO: include 0 as write_len
-                let write_len = std::cmp::min(rng.gen_range(1, 64), data.len() - idx);
+                let write_len = std::cmp::min(rng.gen_range(1..64), data.len() - idx);
                 let result = WebPIAppend(idec.as_mut(), &data[idx..idx + write_len]);
                 idx += write_len;
                 if result == VP8StatusCode::VP8_STATUS_OK {
